@@ -49,9 +49,13 @@ def create_pool(loop, **kw):
 @asyncio.coroutine
 def select(sql, args, size=None):
     log(sql, args)
+    # 声明全局变量，这样才能引用create_pool函数创建的__pool变量
     global __pool
+    # 从连接池中获得一个数据库连接
+    # 用with语句可以封装清理（关闭conn)和处理异常工作
     with (yield from __pool) as conn:
         cur = yield from conn.cursor(aiomysql.DictCursor)
+        # SQL语句的占位符是?，而MySQL的占位符是%s
         yield from cur.execute(sql.replace('?', '%s'), args or ())
         if size:
             rs = yield from cur.fetchmany(size)
@@ -61,6 +65,9 @@ def select(sql, args, size=None):
         logging.info('rows returned: %s' % len(rs))
         return rs
 
+
+# 定义execute()函数执行insert update delete语句
+# execute()函数只返回结果数，不返回结果集，适用于insert, update这些语句
 @asyncio.coroutine
 def execute(sql, args):
     log(sql)
@@ -74,10 +81,12 @@ def execute(sql, args):
             raise
         return affected
 
+# 这个函数在元类中被引用，作用是创建一定数量的占位符
 def create_args_string(num):
     L = []
     for n in range(num):
         L.append('?')
+    #比如说num=3，那L就是['?','?','?']，通过下面这句代码返回一个字符串'?,?,?'
     return ', '.join(L)
 
 
