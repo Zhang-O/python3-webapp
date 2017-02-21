@@ -5,10 +5,10 @@
 Configuration
 '''
 
-__author__ = 'Michael Liao'
-
+# 导入默认配置
 import config_default
 
+# 这个类很常见，把dict类加工一下，使得新的Dict类创建的实例可以用x.y的方式来取值和赋值
 class Dict(dict):
     '''
     Simple dict but support access as x.y style.
@@ -27,30 +27,32 @@ class Dict(dict):
     def __setattr__(self, key, value):
         self[key] = value
 
+# 融合默认配置和自定义配置  自定义配置优先
 def merge(defaults, override):
     r = {}
     for k, v in defaults.items():
         if k in override:
             if isinstance(v, dict):
-                r[k] = merge(v, override[k]) # recursion
+                r[k] = merge(v, override[k]) # 这里使用了递归
             else:
                 r[k] = override[k]
         else:
             r[k] = v
     return r
 
+# 这个函数的功能是把一个普通的字典转化为上面我们新建的类实现的那种字典
 def toDict(d):
     D = Dict()
     for k, v in d.items():
-        D[k] = toDict(v) if isinstance(v, dict) else v
+        D[k] = toDict(v) if isinstance(v, dict) else v  # 这里使用了递归
     return D
 
 configs = config_default.configs
 
 try:
-    import config_override
-    configs = merge(configs, config_override.configs)
-except ImportError:
+    import config_override  # 导入自定义配置
+    configs = merge(configs, config_override.configs)  # 融合自定义配置和默认配置
+except ImportError:  # 导入自定义配置失败就直接pass跳过
     pass
 
-configs = toDict(configs)
+configs = toDict(configs) # 把配置字典转化成我们刚才新建类实现的那种字典
