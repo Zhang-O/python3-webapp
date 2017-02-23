@@ -64,6 +64,19 @@ def init_jinja2(app, **kw):
             env.filters[name] = f  # 在env中添加过滤器
     app['__templating__'] = env  # 前面已经把jinjia2的环境配置都赋值给env了，这里再把env存入app的dict中，这样app就知道要去哪找模板，怎么解析模板
 
+# 时间过滤器，作用是返回日志创建的时间，用于显示在日志标题下面
+def datetime_filter(t):
+    delta = int(time.time() - t)
+    if delta < 60:
+        return u'1分钟前'
+    if delta < 3600:
+        return u'%s分钟前' % (delta // 60)
+    if delta < 86400:
+        return u'%s小时前' % (delta // 3600)
+    if delta < 604800:
+        return u'%s天前' % (delta // 86400)
+    dt = datetime.fromtimestamp(t)
+    return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
 # 这个函数的作用就是当http请求的时候，通过logging.info输出请求的信息，其中包括请求的方法和路径
 async def logger_factory(app, handler):
@@ -75,16 +88,17 @@ async def logger_factory(app, handler):
     return logger
 
 
-# 这个函数在day10中定义
+
 # 这个middlewares的作用是在处理请求之前，先将cookie解析出来，并将登陆用户绑定到request对象上
 # 以后的每个请求，都是在这个middle之后处理的，都已经绑定了用户信息
 @asyncio.coroutine
 def auth_factory(app, handler):
     @asyncio.coroutine
     def auth(request):
-        logging.info('check user: %s %s' % (request.method, request.path))
+        logging.info('auth_factory :check user: %s %s' % (request.method, request.path))
         request.__user__ = None  # 先把请求的__user__属性绑定None
-        cookie_str = request.cookies.get(COOKIE_NAME)  # 通过cookie名取得加密cookie字符串，COOKIE_NAME是在headlers模块中定义的
+        # 通过cookie名取得加密cookie字符串，COOKIE_NAME是在headlers模块中定义的
+        cookie_str = request.cookies.get(COOKIE_NAME)
         if cookie_str:
             user = yield from cookie2user(cookie_str)  # 验证cookie，并得到用户信息
             if user:
@@ -106,7 +120,6 @@ def auth_factory(app, handler):
 
     return auth
 
-
 # 只有当请求方法为POST时这个函数才起作用
 async def data_factory(app, handler):
     async def parse_data(request):
@@ -121,11 +134,10 @@ async def data_factory(app, handler):
 
     return parse_data
 
-
 # 服务器端响应 中间件
 async def response_factory(app, handler):
     async def response(request):
-        logging.info('Response handler...')
+        logging.info('response_factory:Response handler...')
         r = await handler(request)
         # 如果相应结果为StreamResponse，直接返回
         # #treamResponse是aiohttp定义response的基类,即所有响应类型都继承自该类
@@ -179,22 +191,6 @@ async def response_factory(app, handler):
     # 上面6个if其实只用到了一个，准确的说只用到了半个。大家可以把用到的代码找出来，把没有用到的注释掉，如果程序能正常运行，那我觉得任务也就完成了
     # 没用到的if语句块了解一下就好，等用到了再回过头来看，你就瞬间理解了。
     return response
-
-
-# 时间过滤器，作用是返回日志创建的时间，用于显示在日志标题下面
-def datetime_filter(t):
-    delta = int(time.time() - t)
-    if delta < 60:
-        return u'1分钟前'
-    if delta < 3600:
-        return u'%s分钟前' % (delta // 60)
-    if delta < 86400:
-        return u'%s小时前' % (delta // 3600)
-    if delta < 604800:
-        return u'%s天前' % (delta // 86400)
-    dt = datetime.fromtimestamp(t)
-    return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
-
 
 # 调用asyncio实现异步IO
 async def init(loop):
