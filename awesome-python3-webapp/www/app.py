@@ -7,25 +7,18 @@ import logging
 # 设置logging的默认level为INFO
 # 日志级别大小关系为：CRITICAL > ERROR > WARNING > INFO > DEBUG > NOTSET
 logging.basicConfig(level=logging.INFO)
-
 # asyncio 内置了对异步IO的支持
 import asyncio
-
 # os模块提供了调用操作系统的接口函数
 import os
-
 # json模块提供了Python对象到Json模块的转换
 import json
-
 # time模块提供各种操作时间的函数
 import time
-
 # datetime是处理日期和时间的标准库
 from datetime import datetime
-
 # aiohttp是基于asyncio实现的http框架
 from aiohttp import web
-
 # Jinja2 是仿照 Django 模板的 Python 前端引擎模板
 # Environment指的是jinjia2模板的配置环境，FileSystemLoader是文件系统加载器，用来加载模板路径
 from jinja2 import Environment, FileSystemLoader
@@ -84,7 +77,6 @@ async def logger_factory(app, handler):
         logging.info('Request: %s %s' % (request.method, request.path))
         # await asyncio.sleep(0.3)
         return (await handler(request))
-
     return logger
 
 
